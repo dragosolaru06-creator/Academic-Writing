@@ -6,12 +6,13 @@
 #include <cstring>
 #include <iomanip>
 #include <ctime>
-#include <future>
 #include <string>
+#include <windows.h>
 
-// SORTING ALGORITHMS
+// ================= SORTING ALGORITHMS =================
 
-void bubbleSort(int arr[], int n) {
+template <typename T>
+void bubbleSort(T arr[], int n) {
     for (int i = 0; i < n - 1; i++) {
         bool swapped = false;
         for (int j = 0; j < n - i - 1; j++) {
@@ -24,9 +25,10 @@ void bubbleSort(int arr[], int n) {
     }
 }
 
-void insertionSort(int arr[], int n) {
+template <typename T>
+void insertionSort(T arr[], int n) {
     for (int i = 1; i < n; i++) {
-        int key = arr[i];
+        T key = arr[i];
         int j = i - 1;
         while (j >= 0 && arr[j] > key) {
             arr[j + 1] = arr[j];
@@ -36,7 +38,8 @@ void insertionSort(int arr[], int n) {
     }
 }
 
-void selectionSort(int arr[], int n) {
+template <typename T>
+void selectionSort(T arr[], int n) {
     for (int i = 0; i < n - 1; i++) {
         int minIndex = i;
         for (int j = i + 1; j < n; j++)
@@ -46,58 +49,35 @@ void selectionSort(int arr[], int n) {
     }
 }
 
-// ✅ FIXED Quick Sort - Median-of-three pivot + tail recursion (the preevious quick sort implementation had a bug where it could get stuck in an infinite loop for certain inputs, especially with duplicates. The new implementation uses median-of-three pivot selection to improve performance on sorted and nearly sorted data, and it also optimizes tail recursion to prevent stack overflow on large inputs.)
-int partition(int arr[], int low, int high) {
-    // Median-of-three pivot selection
-    int mid = low + (high - low) / 2;
-    if (arr[mid] < arr[low]) std::swap(arr[mid], arr[low]);
-    if (arr[high] < arr[low]) std::swap(arr[high], arr[low]);
-    if (arr[high] < arr[mid]) std::swap(arr[high], arr[mid]);
-    
-    int pivot = arr[high];
+// Quick Sort
+template <typename T>
+int partition(T arr[], int low, int high) {
+    T pivot = arr[high];
     int i = low - 1;
-    
-    for (int j = low; j < high; j++) {
-        if (arr[j] <= pivot) {  // <= handles duplicates better
+
+    for (int j = low; j < high; j++)
+        if (arr[j] <= pivot)
             std::swap(arr[++i], arr[j]);
-        }
-    }
+
     std::swap(arr[i + 1], arr[high]);
     return i + 1;
 }
 
-void quickSort(int arr[], int low, int high) {
-    while (low < high) {
-        if (high - low < 10) {  // Small arrays: use insertion sort
-            for (int i = low + 1; i <= high; i++) {
-                int key = arr[i];
-                int j = i - 1;
-                while (j >= low && arr[j] > key) {
-                    arr[j + 1] = arr[j];
-                    j--;
-                }
-                arr[j + 1] = key;
-            }
-            break;
-        }
-        
+template <typename T>
+void quickSort(T arr[], int low, int high) {
+    if (low < high) {
         int pi = partition(arr, low, high);
-        
-        // Tail recursion optimization - process smaller partition first
-        if (pi - low < high - pi) {
-            quickSort(arr, low, pi - 1);
-            high = pi - 1;  // low stays the same
-        } else {
-            quickSort(arr, pi + 1, high);
-            low = pi + 1;   // high stays the same
-        }
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
     }
 }
 
 // Merge Sort
-void merge(int arr[], int l, int m, int r) {
+template <typename T>
+void merge(T arr[], int l, int m, int r) {
     int n1 = m - l + 1, n2 = r - m;
-    int *L = new int[n1], *R = new int[n2];
+    T* L = new T[n1];
+    T* R = new T[n2];
 
     for (int i = 0; i < n1; i++) L[i] = arr[l + i];
     for (int j = 0; j < n2; j++) R[j] = arr[m + 1 + j];
@@ -113,7 +93,8 @@ void merge(int arr[], int l, int m, int r) {
     delete[] R;
 }
 
-void mergeSort(int arr[], int l, int r) {
+template <typename T>
+void mergeSort(T arr[], int l, int r) {
     if (l < r) {
         int m = l + (r - l) / 2;
         mergeSort(arr, l, m);
@@ -123,17 +104,21 @@ void mergeSort(int arr[], int l, int r) {
 }
 
 // Heap Sort
-void heapify(int arr[], int n, int i) {
-    int largest = i, left = 2 * i + 1, right = 2 * i + 2;
-    if (left < n && arr[left] > arr[largest]) largest = left;
-    if (right < n && arr[right] > arr[largest]) largest = right;
+template <typename T>
+void heapify(T arr[], int n, int i) {
+    int largest = i, l = 2 * i + 1, r = 2 * i + 2;
+
+    if (l < n && arr[l] > arr[largest]) largest = l;
+    if (r < n && arr[r] > arr[largest]) largest = r;
+
     if (largest != i) {
         std::swap(arr[i], arr[largest]);
         heapify(arr, n, largest);
     }
 }
 
-void heapSort(int arr[], int n) {
+template <typename T>
+void heapSort(T arr[], int n) {
     for (int i = n / 2 - 1; i >= 0; i--) heapify(arr, n, i);
     for (int i = n - 1; i > 0; i--) {
         std::swap(arr[0], arr[i]);
@@ -141,168 +126,187 @@ void heapSort(int arr[], int n) {
     }
 }
 
-// Radix Sort
-void countingSort(int arr[], int n, int exp) {
-    int *output = new int[n];
-    int count[10] = {0};
+// ================= GENERATORS =================
 
-    for (int i = 0; i < n; i++)
-        count[(arr[i] / exp) % 10]++;
-
-    for (int i = 1; i < 10; i++)
-        count[i] += count[i - 1];
-
-    for (int i = n - 1; i >= 0; i--) {
-        int digit = (arr[i] / exp) % 10;
-        output[count[digit] - 1] = arr[i];
-        count[digit]--;
-    }
-
-    for (int i = 0; i < n; i++)
-        arr[i] = output[i];
-
-    delete[] output;
-}
-
-int max_element(int arr[], int n) {
-    int maxVal = arr[0];
-    for (int i = 1; i < n; i++)
-        if (arr[i] > maxVal)
-            maxVal = arr[i];
-    return maxVal;
-}
-
-void radixSort(int arr[], int n) {
-    int maxVal = max_element(arr, n);
-    for (int exp = 1; maxVal / exp > 0; exp *= 10)
-        countingSort(arr, n, exp);
-}
-
-// Tim Sort
-void timSort(int arr[], int n) {
-    const int RUN = 32;
-
-    for (int i = 0; i < n; i += RUN) {
-        int len = std::min(RUN, n - i);
-        insertionSort(arr + i, len);
-    }
-
-    for (int size = RUN; size < n; size *= 2)
-        for (int left = 0; left < n; left += 2 * size) {
-            int mid = left + size - 1;
-            int right = std::min(left + 2 * size - 1, n - 1);
-            if (mid < right)
-                merge(arr, left, mid, right);
-        }
-}
-
-// ARRAY GENERATORS
-
+// INT
 void generateRandom(int arr[], int n) {
     for (int i = 0; i < n; i++) arr[i] = rand() % 1000000;
 }
 
-void generateSorted(int arr[], int n) {
-    for (int i = 0; i < n; i++) arr[i] = i;
+// FLOAT
+void generateRandom(float arr[], int n) {
+    for (int i = 0; i < n; i++) arr[i] = (float)rand() / RAND_MAX;
 }
 
-void generateReverse(int arr[], int n) {
-    for (int i = 0; i < n; i++) arr[i] = n - i;
+// CHAR
+void generateRandom(char arr[], int n) {
+    for (int i = 0; i < n; i++) arr[i] = 'a' + rand() % 26;
 }
 
-void generateHalf(int arr[], int n) {
-    for (int i = 0; i < n / 2; i++) arr[i] = i;
-    for (int i = n / 2; i < n; i++) arr[i] = rand() % 1000000;
+// Generic patterns
+template <typename T>
+void generateSorted(T arr[], int n) {
+    for (int i = 0; i < n; i++) arr[i] = (T)i;
 }
 
-void generateNearly(int arr[], int n) {
+template <>
+void generateSorted<char>(char arr[], int n) {
+    for (int i = 0; i < n; i++) arr[i] = 'a' + (i % 26);
+}
+
+template <typename T>
+void generateReverse(T arr[], int n) {
+    for (int i = 0; i < n; i++) arr[i] = (T)(n - i);
+}
+
+template <>
+void generateReverse<char>(char arr[], int n) {
+    for (int i = 0; i < n; i++) arr[i] = 'z' - (i % 26);
+}
+
+template <typename T>
+void generateHalf(T arr[], int n) {
+    for (int i = 0; i < n / 2; i++) arr[i] = (T)i;
+    for (int i = n / 2; i < n; i++) arr[i] = rand();
+}
+
+template <typename T>
+void generateNearly(T arr[], int n) {
     generateSorted(arr, n);
     for (int i = 0; i < n / 10; i++)
         std::swap(arr[rand() % n], arr[rand() % n]);
 }
 
-// TIMEOUT MEASURE
+// ================= RUN ALGO =================
 
-template <typename Func>
-double measureWithTimeout(Func f, int arr[], int n, double maxSeconds) {
-    auto future = std::async(std::launch::async, [=]() {
-        auto start = std::chrono::high_resolution_clock::now();
-        f(arr, n);
-        auto end = std::chrono::high_resolution_clock::now();
-        return std::chrono::duration<double>(end - start).count();
-    });
-
-    if (future.wait_for(std::chrono::duration<double>(maxSeconds)) == std::future_status::ready)
-        return future.get();
-    else
-        return -1.0; // TIMEOUT
+template <typename T>
+void runAlgo(const std::string& algo, T arr[], int n) {
+    if (algo == "bubble") bubbleSort(arr, n);
+    else if (algo == "insertion") insertionSort(arr, n);
+    else if (algo == "selection") selectionSort(arr, n);
+    else if (algo == "quick") quickSort(arr, 0, n - 1);
+    else if (algo == "merge") mergeSort(arr, 0, n - 1);
+    else if (algo == "heap") heapSort(arr, n);
 }
 
-// MAIN
+// ================= WORKER =================
 
-int main() {
+void worker(int n, std::string algo, std::string type, std::string dist) {
+
+    if (type == "int") {
+        int* arr = new int[n];
+
+        if (dist == "Random") generateRandom(arr, n);
+        else if (dist == "Sorted") generateSorted(arr, n);
+        else if (dist == "Reverse") generateReverse(arr, n);
+        else if (dist == "Half") generateHalf(arr, n);
+        else if (dist == "Nearly") generateNearly(arr, n);
+
+        runAlgo(algo, arr, n);
+        delete[] arr;
+    }
+
+    else if (type == "float") {
+        float* arr = new float[n];
+
+        if (dist == "Random") generateRandom(arr, n);
+        else if (dist == "Sorted") generateSorted(arr, n);
+        else if (dist == "Reverse") generateReverse(arr, n);
+        else if (dist == "Half") generateHalf(arr, n);
+        else if (dist == "Nearly") generateNearly(arr, n);
+
+        runAlgo(algo, arr, n);
+        delete[] arr;
+    }
+
+    else if (type == "char") {
+        char* arr = new char[n];
+
+        if (dist == "Random") generateRandom(arr, n);
+        else if (dist == "Sorted") generateSorted(arr, n);
+        else if (dist == "Reverse") generateReverse(arr, n);
+        else if (dist == "Half") generateHalf(arr, n);
+        else if (dist == "Nearly") generateNearly(arr, n);
+
+        runAlgo(algo, arr, n);
+        delete[] arr;
+    }
+}
+
+// ================= TIMEOUT =================
+
+double runWithTimeout(std::string algo, std::string type, std::string dist, int n) {
+
+    std::string cmd = "AW_project.exe worker " +
+        std::to_string(n) + " " + algo + " " + type + " " + dist;
+
+    STARTUPINFO si = { sizeof(si) };
+    PROCESS_INFORMATION pi;
+
+    if (!CreateProcess(NULL, cmd.data(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi))
+        return -1;
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    DWORD result = WaitForSingleObject(pi.hProcess, 60000);
+
+    if (result == WAIT_TIMEOUT) {
+        TerminateProcess(pi.hProcess, 1);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        return -1;
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+
+    return std::chrono::duration<double>(end - start).count();
+}
+
+// ================= MAIN =================
+
+int main(int argc, char* argv[]) {
     srand(time(nullptr));
 
-    int sizes[] = {20, 50, 100, 500, 1000, 5000, 10000, 100000, 1000000};
-    int numSizes = sizeof(sizes) / sizeof(sizes[0]);
+    if (argc > 1 && std::string(argv[1]) == "worker") {
+        worker(
+            std::stoi(argv[2]),
+            argv[3],
+            argv[4],
+            argv[5]
+        );
+        return 0;
+    }
+
+    int sizes[] = {20, 50, 100,1000, 10000, 100000, 1000000};
+    std::string algos[] = {"bubble", "insertion", "selection", "quick", "merge", "heap"};
+    std::string types[] = {"int", "float", "char"};
+    std::string dists[] = {"Random", "Sorted", "Reverse", "Half", "Nearly"};
 
     std::ofstream out("sorting_results.csv");
-    out << std::fixed << std::setprecision(6);
-    out << "Size,Algorithm,Random,Sorted,Reverse,Half,Nearly\n";
+    out << "Type,Size,Algorithm,Random,Sorted,Reverse,Half,Nearly\n";
 
-    for (int s = 0; s < numSizes; s++) {
-        int n = sizes[s];
-        int *base = new int[n];
-        int *arr = new int[n];
+    for (auto& type : types) {
+        for (int n : sizes) {
+            for (auto& algo : algos) {
 
-        auto run = [&](std::string name, auto func) {
-            std::string t[5];
-            const char* types[5] = {"Random", "Sorted", "Reverse", "Half", "Nearly"};
+                out << type << "," << n << "," << algo;
 
-            auto runCase = [&](int caseIndex, auto generator) {
-                std::cout << "[SIZE " << n << "] Running " << name
-                          << " on " << types[caseIndex] << "...\n";
+                for (auto& dist : dists) {
+                    std::cout << "[" << type << "] n=" << n
+                              << " " << algo << " " << dist << "...\n";
 
-                generator(base, n);
-                memcpy(arr, base, n * sizeof(int));
+                    double t = runWithTimeout(algo, type, dist, n);
 
-                double time = measureWithTimeout(func, arr, n, 5.0);
-
-                if (time < 0) {
-                    t[caseIndex] = "TIMEOUT";
-                    std::cout << "[SIZE " << n << "] " << name
-                              << " on " << types[caseIndex] << " TIMEOUT\n";
-                } else {
-                    t[caseIndex] = std::to_string(time);
-                    std::cout << "[SIZE " << n << "] " << name
-                              << " on " << types[caseIndex]
-                              << " completed in " << time << "s\n";
+                    if (t < 0) out << ",TIMEOUT";
+                    else out << "," << t;
                 }
-            };
 
-            runCase(0, generateRandom);
-            runCase(1, generateSorted);
-            runCase(2, generateReverse);
-            runCase(3, generateHalf);
-            runCase(4, generateNearly);
-
-            out << n << "," << name;
-            for (int i = 0; i < 5; i++)
-                out << "," << t[i];
-            out << "\n";
-        };
-
-        run("Bubble Sort", bubbleSort);
-        run("Insertion Sort", insertionSort);
-        run("Selection Sort", selectionSort);
-        run("Quick Sort", [](int a[], int n) { quickSort(a, 0, n - 1); });
-        run("Merge Sort", [](int a[], int n) { mergeSort(a, 0, n - 1); });
-        run("Heap Sort", heapSort);
-        run("Radix Sort", radixSort);
-        run("Tim Sort", timSort);
-
-        delete[] base;
-        delete[] arr;
+                out << "\n";
+            }
+        }
     }
 
     out.close();
