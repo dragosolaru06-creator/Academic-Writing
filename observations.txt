@@ -1,4 +1,0 @@
-Quick Sort for a sorted array of 100,000 elements would take too long due to the pivot being the largest element (thus partition becomes very unbalanced and the compiler gets stuck in an infinite loop). This issue was solved by adding the median-of-three pivot to the Quick Sort.
-
-Sorting for arrays of 1,000,000 elements would not compute due to the quadratic complexity (O(n^2)) of some algorithms resulting in a run time of hours or days. THe timeout function also only checks if sorting is finished and does not cancel it, so we end up with multiple sorting algorithms running in the background at the same time. THis issue was solved by using a separate process to run the sorting algorithm and terminating it if the execution time exceeded 1 minute.
-
